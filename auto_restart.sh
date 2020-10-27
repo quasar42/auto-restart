@@ -338,8 +338,7 @@ do
 
                     if [[ -z "$dryRun" ]];
                     then
-                        #reboot
-                        echo "hehe"
+                        reboot
                     else
                         echo -e "\t\t\t\t###################################"
                         echo -e "\t\t\t\t##                               ##"
