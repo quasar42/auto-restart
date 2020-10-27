@@ -131,7 +131,7 @@ set -- "${POSITIONAL[@]}"
 
 if ! [ -z $1 ];
 then
-    echoerr "${RED}Error: unknown option \"$1\".${RA}"
+    echoerr "Error: unknown option \"$1\"."
     exit 0
 fi
 
