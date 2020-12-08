@@ -79,36 +79,43 @@ do
             ;;
         -c|--cpu)
             cpuLoad="$2"
+            cpuLoad_F=true
             shift # past argument
             shift # past value
             ;;
         -n|--network)
             network="$2"
+            network_F=true
             shift # past argument
             shift # past value
             ;;
         --net-interval)
             netInterval="$2"
+            netInterval_F=true
             shift # past argument
             shift # past value
             ;;
         -p|--proc)
             proc="$2"
+            proc_F=true
             shift # past argument
             shift # past value
             ;;
         -i|--interval)
             interval="$2"
+            interval_F=true
             shift # past argument
             shift # past value
             ;;
         -t|--time)
             endTime="$2"
+            endTime_F=true
             shift # past argument
             shift # past value
             ;;
         -u|--uptime)
             uptime="$2"
+            uptime_F=true
             shift # past argument
             shift # past value
             ;;
@@ -137,7 +144,7 @@ fi
 
 errorInArguments=false
 
-if [[ ! -z "$cpuLoad" ]];
+if [[ ! -z "$cpuLoad_F" ]];
 then
     if [[ "$cpuLoad" == "1" ]] || [[ $(echo $cpuLoad | sed 's/[0-9]\+.[0-9]\{0,2\},[0-9]\+.[0-9]\{0,2\},[0-9]\+.[0-9]\{0,2\}/1/g') != 1 ]];
     then
@@ -146,8 +153,10 @@ then
     fi
 fi
 
-if [[ ! -z "$network" ]];
+if [[ -z "$network_F" ]];
 then
+    network=-1
+else
     if [[ "$network" == "1" ]] || [[ $(echo $network | sed 's/[0-9]\+\(\(.[0-9]\+[kMGTP]\)\|[kMGTP]\)\?/1/g') != 1 ]];
     then
         echoerr "Error: network traffic utilization in wrong format. Need \"X[kMGTP]\", where X represents amount of bytes per second and optional character represents multiple of byte. Got \"$network\""
@@ -172,7 +181,7 @@ then
             ;;
     esac
     
-    if [[ -z "$netInterval" ]];
+    if [[ -z "$netInterval_F" ]];
     then
         netInterval=30
     else
@@ -182,20 +191,18 @@ then
             errorInArguments=true
         fi
     fi
-else
-    network=-1
 fi
 
-if [[ ! -z "$proc" ]];
+if [[ ! -z "$proc_F" ]];
 then
-    if [[ "$proc" == "1" ]] || [[ $(echo $proc | sed 's/^.*,,.*$/1/g') == 1 ]];
+    if [[ "$proc" == "1" ]] || [[ $(echo $proc | sed 's/^.*,,.*$/1/g') == 1 ]] || [[ "$proc" == "" ]];
     then
         echoerr "Error: list of processes in wrong format. Need \"X,X,X...\", where X represents name of a process. Got \"$proc\""
         errorInArguments=true
     fi
 fi
 
-if [[ -z "$interval" ]];
+if [[ -z "$interval_F" ]];
 then
     interval=900
 else
@@ -206,7 +213,7 @@ else
     fi 
 fi
 
-if [[ -z "$endTime" ]];
+if [[ -z "$endTime_F" ]];
 then
     endTime="5:00"
 else
@@ -217,7 +224,7 @@ else
     fi
 fi
 
-if [[ -z "$uptime" ]];
+if [[ -z "$uptime_F" ]];
 then
     uptime=-1
 else
@@ -235,30 +242,30 @@ fi
 
 echo -e "[START]\t$(date +'%Y-%m-%d %H:%M:%S')\tStarting auto restart script. Set options:"
 
-if [[ ! -z "$cpuLoad" ]];
+if [[ ! -z "$cpuLoad_F" ]];
 then
     echo -e "\t\t\t\tCPU load:\t\t\t\t$cpuLoad"
 fi
 
-if [[ "$network" -gt "0" ]];
+if [[ ! -z "$network_F" ]];
 then
     echo -e "\t\t\t\tAverage network traffic:\t\t$(numToHumanReadable $network)B/s"
     echo -e "\t\t\t\tNetwork traffic measurement interval:\t$netInterval s"
 fi
 
-if [[ ! -z "$proc" ]];
+if [[ ! -z "$proc_F" ]];
 then
     echo -e "\t\t\t\tProcesses:\t\t\t\t$proc"
 fi
 
-if [[ ! -z "$interval" ]];
+if [[ ! -z "$interval_F" ]];
 then
     echo -e "\t\t\t\tRestart try interval:\t\t\t$interval s"
 fi
 
 echo -e "\t\t\t\tScript end time:\t\t\t$endTime"
 
-if [[ "$uptime" -gt "0" ]];
+if [[ ! -z "$uptime_F" ]];
 then
     echo -e "\t\t\t\tUptime:\t\t\t\t\t$uptime h"
 fi
@@ -280,7 +287,7 @@ do
         then
             processFound=0
 
-            if [[ ! -z "$proc" ]];
+            if [[ ! -z "$proc_F" ]];
             then
                 IFS=',' read -ra processes <<< $proc
                 for process in "${processes[@]}";
@@ -299,7 +306,7 @@ do
 
             if [ "$processFound" == "0" ];
             then
-                if [[ "$network" -gt "0" ]];
+                if [[ ! -z "$network_F" ]];
                 then
                     echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tStarting network traffic monitorig for $netInterval s"
                     oldRxTx=$(cat /proc/net/dev | grep -e '.*:.*' | awk '{sum += $2 + $10} END {printf "%.f", sum}')
@@ -314,20 +321,20 @@ do
                 then
                     echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tThe computer will be restarted now."
                     echo -en "\t\t\t\tCPU load:\t\t$currentCPULoad"
-                    if [[ -z "$cpuLoad" ]];
+                    if [[ -z "$cpuLoad_F" ]];
                     then
                         echo ""
                     else
                         echo -e "\tThreshold: $cpuLoad"
                     fi
 
-                    if [[ "$network" -gt "0" ]];
+                    if [[ ! -z "$network_F" ]];
                     then
                         echo -e "\t\t\t\tAverage net traffic:\t$(numToHumanReadable $averageRxTx)B/s\tThreshold: $(numToHumanReadable $network)B/s"
                     fi
 
                     echo -en "\t\t\t\tUptime:\t\t\t$(cat /proc/uptime | awk '{print int($1/3600)}') h"
-                    if [[ "$uptime" -gt "0" ]];
+                    if [[ ! -z "$uptime_F" ]];
                     then
                         echo -e "\t\tThreshold: $uptime h"
                     else
