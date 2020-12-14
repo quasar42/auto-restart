@@ -24,8 +24,10 @@ function printHelp {
     echo -e "\t    ${BOLD}--net-interval${RA} ${UND}interval${RA}\tInterval of measurement of network traffic usage defined by ${UND}interval${RA}\n\t\t\t\t\tin seconds. Default value is 30 seconds."
     echo -e "\t${BOLD}-p${RA}, ${BOLD}--proc${RA} ${UND}processes${RA}\t\tList of ${UND}processes${RA} that can't be running when attempting to reboot. The list\n\t\t\t\t\thas to be composed of the names of the processes separated by comma."
     echo -e "\t${BOLD}-i${RA}, ${BOLD}--interval${RA} ${UND}time${RA}\t\tInterval in seconds specified by ${UND}time${RA} between individual tries to reboot.\n\t\t\t\t\tDefault value is 900 seconds."
-    echo -e "\t${BOLD}-t${RA}, ${BOLD}--time${RA} ${UND}end-time${RA}\t\tSpecifies until what ${UND}end-time${RA} should the script try to reboot the PC.\n\t\t\t\t\tIt has to be in 24-hour format (e.g., starting the script at 23:00 and\n\t\t\t\t\tsetting -t 04:00 will result in 5 hour time window in which the script\n\t\t\t\t\twill try to reboot the system). Default value is \"5:00\"."
+    echo -e "\t${BOLD}-t${RA}, ${BOLD}--time${RA} ${UND}end-time${RA}\t\tSpecifies until what ${UND}end-time${RA} should the script try to reboot the PC.\n\t\t\t\t\tIt has to be in 24-hour format (e.g., starting the script at 23:00 and\n\t\t\t\t\tsetting -t 04:00 will result in 5 hour time window in which the script\n\t\t\t\t\twill try to reboot the system). Can be combined with ${BOLD}--amount-of-tries${RA}\n\t\t\t\t\tand ${BOLD}--timeout${RA}. Whichever of the set parameter is reached first is used."
     echo -e "\t${BOLD}-u${RA}, ${BOLD}--uptime${RA} ${UND}time${RA}\t\tSets threshold for uptime. If the computer is running longer than ${UND}time${RA}\n\t\t\t\t\tit will try to reboot. Parameter is expected in hours."
+    echo -e "\t${BOLD}-a${RA}, ${BOLD}--amount-of-tries${RA} ${UND}amount${RA}\tWill only try to restart ${UND}amount${RA} of times. Can be combined with ${BOLD}--time${RA}\n\t\t\t\t\tand ${BOLD}--timeout${RA}. Whichever of the set parameter is reached first is used.\n\t\t\t\t\tValue ${UND}amount${RA} is unlimited by default."
+    echo -e "\t${BOLD}-o${RA}, ${BOLD}--timeout${RA} ${UND}time${RA}\t\tWill only try to restart if total time elapsed from the start of the script\n\t\t\t\t\tis lower than ${UND}time${RA}. Value is expeced in minutes. Can be combined with\n\t\t\t\t\t${BOLD}--time${RA} and ${BOLD}--amount-of-tries${RA}. Whichever of the set parameter is reached\n\t\t\t\t\tfirst is used. Value ${UND}time${RA} is unlimited by default."
     echo -e "\t${BOLD}-r${RA}, ${BOLD}--human-readable${RA}\t\tPrints network traffic sizes in power of 1000 (e.g., 4.8 M)."
     echo -e "\t${BOLD}-d${RA}, ${BOLD}--dry-run${RA}\t\t\tWon't reboot if the parameters are met, just prints a message."
     exit 0
@@ -67,6 +69,11 @@ function numToHumanReadable() {
             echo "$1 "
         fi
     fi
+}
+
+function scriptTerminate() {
+    echo -e "[STOP]\t$(date +'%Y-%m-%d %H:%M:%S')\tRequirements not reached, $@, terminating script"
+    exit
 }
 
 POSITIONAL=()
@@ -119,6 +126,18 @@ do
             shift # past argument
             shift # past value
             ;;
+        -a|--amount-of-tries)
+            numOfTries="$2"
+            numOfTries_F=true
+            shift # past argument
+            shift # past value
+            ;;
+        -o|--timeout)
+            timeout="$2"
+            timeout_F=true
+            shift # past argument
+            shift # past value
+            ;;
         -r|--human-readable)
             humanReadable=true
             shift # past argument
@@ -146,7 +165,7 @@ errorInArguments=false
 
 if [[ ! -z "$cpuLoad_F" ]];
 then
-    if [[ "$cpuLoad" == "1" ]] || [[ $(echo $cpuLoad | sed 's/[0-9]\+.[0-9]\{0,2\},[0-9]\+.[0-9]\{0,2\},[0-9]\+.[0-9]\{0,2\}/1/g') != 1 ]];
+    if [[ "$cpuLoad" == "1" || "$(echo $cpuLoad | sed 's/[0-9]\+.[0-9]\{0,2\},[0-9]\+.[0-9]\{0,2\},[0-9]\+.[0-9]\{0,2\}/1/g')" != "1" ]];
     then
         echoerr "Error: CPU load in wrong format. Need \"X,Y,Z\", where X is CPU load for last 1 minute, Y for last 5 minutes and Z for last 15 minutes in float (e.g., 0.30,0.15,0.05), got \"$cpuLoad\""
         errorInArguments=true
@@ -157,7 +176,7 @@ if [[ -z "$network_F" ]];
 then
     network=-1
 else
-    if [[ "$network" == "1" ]] || [[ $(echo $network | sed 's/[0-9]\+\(\(.[0-9]\+[kMGTP]\)\|[kMGTP]\)\?/1/g') != 1 ]];
+    if [[ "$network" == "1" || "$(echo $network | sed 's/[0-9]\+\(\(.[0-9]\+[kMGTP]\)\|[kMGTP]\)\?/1/g')" != "1" ]];
     then
         echoerr "Error: network traffic utilization in wrong format. Need \"X[kMGTP]\", where X represents amount of bytes per second and optional character represents multiple of byte. Got \"$network\""
         errorInArguments=true
@@ -195,7 +214,7 @@ fi
 
 if [[ ! -z "$proc_F" ]];
 then
-    if [[ "$proc" == "1" ]] || [[ $(echo $proc | sed 's/^.*,,.*$/1/g') == 1 ]] || [[ "$proc" == "" ]];
+    if [[ "$proc" == "1" || "$(echo $proc | sed 's/^.*,,.*$/1/g')" == "1" || "$proc" == "" ]];
     then
         echoerr "Error: list of processes in wrong format. Need \"X,X,X...\", where X represents name of a process. Got \"$proc\""
         errorInArguments=true
@@ -213,14 +232,22 @@ else
     fi 
 fi
 
-if [[ -z "$endTime_F" ]];
+if [[ ! -z "$endTime_F" ]];
 then
-    endTime="5:00"
-else
-    if [[ "$endTime" == "1" ]] || [[ $(echo $endTime | sed 's/\(\([0-1]\?[0-9]\)\|\(2[0-3]\)\):[0-5][0-9]/1/g') != 1 ]];
+    if [[ "$endTime" == "1" || "$(echo $endTime | sed 's/\(\([0-1]\?[0-9]\)\|\(2[0-3]\)\):[0-5][0-9]/1/g')" != "1" ]];
     then
         echoerr "Error: end time in wrong format. Need \"HH:MM\" in 24-hour format (e.g., 05:00, or 5:00). Got \"$endTime\""
         errorInArguments=true
+    else
+        endTime_H="$(echo $endTime | awk -F ':' '{print $1}' | sed 's/^0*//')"
+        endTime_M="$(echo $endTime | awk -F ':' '{print $2}' | sed 's/^0*//')"
+        if [[ "$endTime_H" -lt "$(date +%H | sed 's/^0*//')" || ( "$endTime_H" -eq "$(date +%H | sed 's/^0*//')" && "$endTime_M" -lt "$(date +%M | sed 's/^0*//')" ) ]];
+        then
+            dayEarly=true
+        else
+            dayEarly=false
+        fi
+        echo "day early: $dayEarly"
     fi
 fi
 
@@ -233,6 +260,32 @@ else
         echoerr "Error: uptime in wrong format. Need \"X\", where X represents uptime in hours. Got \"$uptime\""
         errorInArguments=true
     fi
+fi
+
+if [[ -z "$numOfTries_F" ]];
+then
+    numOfTries=-1
+else
+    if ! [[ $numOfTries =~ $isNum ]];
+    then
+        echoerr "Error: amount of reboot tries in wrong format. Need \"X\", where X represents number of tries to reboot. Got \"$numOfTries\""
+        errorInArguments=true
+    else
+        triesCounter=1
+    fi
+fi
+
+if [[ -z "$timeout_F" ]];
+then
+    timeout=-1
+else
+    if ! [[ $timeout =~ $isNum ]];
+    then
+        echoerr "Error: timeout in wrong format. Need \"X\", where X represents timeout for reboot tries and is expected to be in minutes. Got \"$timeout\""
+        errorInArguments=true
+    else
+        timeoutStart="$(date +%s)"
+    fi 
 fi
 
 if [ "$errorInArguments" = true ];
@@ -263,38 +316,43 @@ then
     echo -e "\t\t\t\tRestart try interval:\t\t\t$interval s"
 fi
 
-echo -e "\t\t\t\tScript end time:\t\t\t$endTime"
+if [[ ! -z "$endTime_F" ]];
+then
+    echo -e "\t\t\t\tScript end time:\t\t\t$endTime"
+fi
 
 if [[ ! -z "$uptime_F" ]];
 then
     echo -e "\t\t\t\tUptime:\t\t\t\t\t$uptime h"
 fi
 
-if [[ $(awk -F ':' '{print $1}' <<< $endTime) -le $(date +%H) || $(awk -F ':' '{print $1}' <<< $endTime) == $(date +%H) && $(awk -F ':' '{print $2}' <<< $endTime) -le $(date +%M) ]];
+if [[ ! -z "$numOfTries_F" ]];
 then
-    dayEarly=true
-    startTime=$(date +%H:%M)
-else
-    dayEarly=false
+    echo -e "\t\t\t\tNumber of tries:\t\t\t$numOfTries"
 fi
 
-while [ \( "$dayEarly" = "true" -a $(date +%H) -le "23" -a $(date +%M) -le "59" \) -o \( $(awk -F ':' '{print $1}' <<< $endTime) -ge $(date +%H) -a $(awk -F ':' '{print $2}' <<< $endTime) -gt $(date +%M) \) ]
+if [[ ! -z "$timeout_F" ]];
+then
+    echo -e "\t\t\t\tTimeout:\t\t\t\t$timeout min"
+fi
+
+while true;
 do
-    if [ "$uptime" -le "$(cat /proc/uptime | awk '{print int($1/3600)}')" ]
+    if [[ "$uptime" -le "$(cat /proc/uptime | awk '{print int($1/3600)}')" ]]
     then
-        currentCPULoad=$(uptime | sed 's/.*\([0-9]\+,[0-9]\+, [0-9]\+,[0-9]\+, [0-9]\+,[0-9]\+\).*/\1/' | sed 's/\([0-9]\+\),\([0-9]\+\)/\1.\2/g' | sed 's/, /,/g')
-        if [[ -z "$cpuLoad" || $(echo "$currentCPULoad,$cpuLoad" | awk -F ',' '{if ($1 <= $4 && $2 <= $5 && $3 <= $6) print "1"; else print "0";}') == "1" ]];
+        currentCPULoad="$(uptime | sed 's/.*\([0-9]\+,[0-9]\+, [0-9]\+,[0-9]\+, [0-9]\+,[0-9]\+\).*/\1/' | sed 's/\([0-9]\+\),\([0-9]\+\)/\1.\2/g' | sed 's/, /,/g')"
+        if [[ -z "$cpuLoad" || "$(echo "$currentCPULoad,$cpuLoad" | awk -F ',' '{if ($1 <= $4 && $2 <= $5 && $3 <= $6) print "1"; else print "0";}')" == "1" ]];
         then
             processFound=0
 
             if [[ ! -z "$proc_F" ]];
             then
-                IFS=',' read -ra processes <<< $proc
+                IFS=',' read -ra processes <<<$proc
                 for process in "${processes[@]}";
                 do
-                    if [[ "$(pgrep $process | wc -l)" > "0" ]];
+                    if [[ "$(pgrep $process | wc -l)" -gt "0" ]];
                     then
-                        if [ "$processFound" == "0" ];
+                        if [[ "$processFound" == "0" ]];
                         then
                             processFound=$process
                         else
@@ -304,15 +362,15 @@ do
                 done
             fi
 
-            if [ "$processFound" == "0" ];
+            if [[ "$processFound" == "0" ]];
             then
                 if [[ ! -z "$network_F" ]];
                 then
                     echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tStarting network traffic monitorig for $netInterval s"
-                    oldRxTx=$(cat /proc/net/dev | grep -e '.*:.*' | awk '{sum += $2 + $10} END {printf "%.f", sum}')
+                    oldRxTx="$(cat /proc/net/dev | grep -e '.*:.*' | awk '{sum += $2 + $10} END {printf "%.f", sum}')"
                     sleep $netInterval
-                    deltaRxTx=$(expr $(cat /proc/net/dev | grep -e '.*:.*' | awk '{sum += $2 + $10} END {printf "%.f", sum}') - $oldRxTx)
-                    averageRxTx=$(echo "$deltaRxTx $netInterval" | awk '{var = $1 / $2} END {printf "%.f", var}')
+                    deltaRxTx="$(expr $(cat /proc/net/dev | grep -e '.*:.*' | awk '{sum += $2 + $10} END {printf "%.f", sum}') - $oldRxTx)"
+                    averageRxTx="$(echo "$deltaRxTx $netInterval" | awk '{var = $1 / $2} END {printf "%.f", var}')"
                 else
                     averageRxTx=-2
                 fi
@@ -341,7 +399,7 @@ do
                         echo ""
                     fi
 
-                    echo -e "[STOP]\t$(date +'%Y-%m-%d %H:%M:%S')\tTerminating script."
+                    echo -e "[STOP]\t$(date +'%Y-%m-%d %H:%M:%S')\tTerminating script"
 
                     if [[ -z "$dryRun" ]];
                     then
@@ -371,12 +429,54 @@ do
     else
         echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, because $(cat /proc/uptime | awk '{print int($1/3600)}') (current uptime) < $uptime (threshold for uptime)"
     fi
-    echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWill sleep for $interval seconds"
-    sleep $interval
-    if [ "$dayEarly" = true ] && [ $(awk -F ':' '{print $1}' <<< $startTime) -ge $(date +%H) ] && [ $(awk -F ':' '{print $2}' <<< $startTime) -gt $(date +%M) ];
+    echo -en "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWill sleep for $interval seconds"
+    
+    if [[ ! -z $numOfTries_F ]];
     then
-        dayEarly=false
+        echo -n ", this was try number $triesCounter"
+    fi
+    
+    if [[ ! -z $timeout_F ]];
+    then
+        runningTime="$(echo "$timeoutStart $(date +%s)" | awk '{print int(($2 - $1) / 60)}')"
+        echo -n ", script is running for $runningTime minute"
+        if [[ "$runningTime" -ne "1" ]];
+        then
+            echo -n "s"
+        fi
+    fi
+    echo ""
+    
+    sleep $interval
+
+    if [[ ! -z $endTime_F ]];
+    then
+        if [[ "$dayEarly" == "true" && "$endTime_H" -ge "$(date +%H | sed 's/^0*//')" && "$endTime_M" -gt "$(date +%M | sed 's/^0*//')" ]];
+        then
+            dayEarly=false
+        fi
+        
+        if [[ "$dayEarly" == "false" && "$endTime_H" -le "$(date +%H | sed 's/^0*//')" && "$endTime_M" -lt "$(date +%M | sed 's/^0*//')" ]];
+        then
+            scriptTerminate "real time exceeded set end time ($endTime)"
+        fi
+    fi
+    
+    if [[ ! -z $numOfTries_F ]];
+    then
+        if [[ "$triesCounter" -le "$numOfTries" ]];
+        then
+            ((triesCounter++))
+        else
+            scriptTerminate "number of tries exceeded set amount of tries ($numOfTries)"
+        fi
+    fi
+    
+    if [[ ! -z $timeout_F ]];
+    then
+        if [[ "$(echo "$timeoutStart $(date +%s)" | awk '{print int(($2 - $1) / 60)}')" -ge "$timeout" ]];
+        then
+            scriptTerminate "script was running longer than the set timeout ($timeout)"
+        fi
     fi
 done
-
-echo -e "[STOP]\t$(date +'%Y-%m-%d %H:%M:%S')\tRequirements for restarting were not met, terminating script"
