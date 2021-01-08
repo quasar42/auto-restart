@@ -464,7 +464,7 @@ do
     
     if [[ ! -z $numOfTries_F ]];
     then
-        if [[ "$triesCounter" -le "$numOfTries" ]];
+        if [[ "$triesCounter" -lt "$numOfTries" ]];
         then
             ((triesCounter++))
         else
