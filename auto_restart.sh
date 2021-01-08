@@ -391,7 +391,7 @@ do
                         echo -e "\t\t\t\tAverage net traffic:\t$(numToHumanReadable $averageRxTx)B/s\tThreshold: $(numToHumanReadable $network)B/s"
                     fi
 
-                    echo -en "\t\t\t\tUptime:\t\t\t$(cat /proc/uptime | awk '{print int($1/3600)}') h"
+                    echo -en "\t\t\t\tUptime:\t\t\t$(cat /proc/uptime | awk '{print int($1/3600)}') h ($(uptime -p))"
                     if [[ ! -z "$uptime_F" ]];
                     then
                         echo -e "\t\tThreshold: $uptime h"
