@@ -340,7 +340,7 @@ while true;
 do
     if [[ "$uptime" -le "$(cat /proc/uptime | awk '{print int($1/3600)}')" ]]
     then
-        currentCPULoad="$(uptime | sed 's/, /,/g' | awk -F ' ' '{print $NF}')"
+        currentCPULoad="$(LC_ALL=en_GB.utf8 uptime | sed 's/, /,/g' | awk -F ' ' '{print $NF}')"
         if [[ -z "$cpuLoad" || "$(echo "$currentCPULoad,$cpuLoad" | awk -F ',' '{if ($1 <= $4 && $2 <= $5 && $3 <= $6) print "1"; else print "0";}')" == "1" ]];
         then
             processFound=0
