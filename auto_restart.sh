@@ -404,6 +404,7 @@ do
                     if [[ -z "$dryRun" ]];
                     then
                         reboot
+                        exit 0
                     else
                         echo -e "\t\t\t\t###################################"
                         echo -e "\t\t\t\t##                               ##"
@@ -429,6 +430,7 @@ do
     else
         echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, because $(cat /proc/uptime | awk '{print int($1/3600)}') (current uptime) < $uptime (threshold for uptime)"
     fi
+
     echo -en "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWill sleep for $interval seconds"
     
     if [[ ! -z $numOfTries_F ]];
