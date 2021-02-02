@@ -28,6 +28,7 @@ function printHelp {
     echo -e "\t${BOLD}-u${RA}, ${BOLD}--uptime${RA} ${UND}time${RA}\t\tSets threshold for uptime. If the computer is running longer than ${UND}time${RA}\n\t\t\t\t\tit will try to reboot. Parameter is expected in hours."
     echo -e "\t${BOLD}-a${RA}, ${BOLD}--amount-of-tries${RA} ${UND}amount${RA}\tWill only try to restart ${UND}amount${RA} of times. Can be combined with ${BOLD}--time${RA}\n\t\t\t\t\tand ${BOLD}--timeout${RA}. Whichever of the set parameter is reached first is used.\n\t\t\t\t\tValue ${UND}amount${RA} is unlimited by default."
     echo -e "\t${BOLD}-o${RA}, ${BOLD}--timeout${RA} ${UND}time${RA}\t\tWill only try to restart if total time elapsed from the start of the script\n\t\t\t\t\tis lower than ${UND}time${RA}. Value is expeced in minutes. Can be combined with\n\t\t\t\t\t${BOLD}--time${RA} and ${BOLD}--amount-of-tries${RA}. Whichever of the set parameter is reached\n\t\t\t\t\tfirst is used. Value ${UND}time${RA} is unlimited by default."
+    echo -e "\t${BOLD}-e${RA}, ${BOLD}--execute${RA} ${UND}command${RA}\t\tInstead of rebooting, custom ${UND}command${RA} will be executed."
     echo -e "\t${BOLD}-r${RA}, ${BOLD}--human-readable${RA}\t\tPrints network traffic sizes in power of 1000 (e.g., 4.8 M)."
     echo -e "\t${BOLD}-d${RA}, ${BOLD}--dry-run${RA}\t\t\tWon't reboot if the parameters are met, just prints a message."
     exit 0
@@ -135,6 +136,12 @@ do
         -o|--timeout)
             timeout="$2"
             timeout_F=true
+            shift # past argument
+            shift # past value
+            ;;
+        -e|--execute)
+            execute="$2"
+            execute_F=true
             shift # past argument
             shift # past value
             ;;
@@ -288,6 +295,15 @@ else
     fi 
 fi
 
+if [[ ! -z "$execute_F" ]];
+then
+    if ! command -v $(echo "$execute" | awk -F ' ' '{print $1}') >/dev/null;
+    then
+        echoerr "Error: command to execute is not recognized by this system. Got \"$execute\""
+        errorInArguments=true
+    fi
+fi
+
 if [ "$errorInArguments" = true ];
 then
     printHelp
@@ -334,6 +350,11 @@ fi
 if [[ ! -z "$timeout_F" ]];
 then
     echo -e "\t\t\t\tTimeout:\t\t\t\t$timeout min"
+fi
+
+if [[ ! -z "$execute_F" ]];
+then
+    echo -e "\t\t\t\tExecute command:\t\t\t$execute"
 fi
 
 while true;
@@ -403,16 +424,20 @@ do
 
                     if [[ -z "$dryRun" ]];
                     then
-                        reboot
-                        exit 0
+                        if [[ -z "$execute_F" ]];
+                        then
+                            reboot
+                        else
+                            bash -c "$execute"
+                        fi
                     else
                         echo -e "\t\t\t\t###################################"
                         echo -e "\t\t\t\t##                               ##"
                         echo -e "\t\t\t\t##  DRY RUN - WOULD RESTART NOW  ##"
                         echo -e "\t\t\t\t##                               ##"
                         echo -e "\t\t\t\t###################################"
-                        exit 0
                     fi
+                    exit 0
                 else
                     echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, because $(numToHumanReadable $averageRxTx)B/s (average network traffic in last $netInterval s) > $(numToHumanReadable $network)B/s (network traffic threshold)"
                 fi

@@ -4,6 +4,7 @@ This script will try to reboot the computer if set parameters are met. Suitable 
 ## Requirements
 * awk
 * cat
+* command
 * date
 * echo
 * expr
@@ -28,5 +29,6 @@ _(commands in bold are not included in [commands standardised by POSIX](https://
 * `-u, --uptime <time>` Sets threshold for uptime. If the computer is running longer than `<time>` it will try to reboot. Parameter is expected in hours.
 * `-a, --amount-of-tries <amount>` Will only try to restart `<amount>` of times. Can be combined with `--time` and `--timeout`. Whichever of the set parameter is reached first is used. Value `<amount>` is unlimited by default.
 * `-o, --timeout <time>` Will only try to restart if total time elapsed from the start of the script is lower than `<time>`. Value is expected in minutes. Can be combined with `--time` and `--amount-of-tries`. Whichever of the set parameter is reached first is used. Value `<time>` is unlimited by default.
+* `-e, --execute <command>` Instead of rebooting, custom `<command>` will be executed.
 * `-r, --human-readable` Prints network traffic sizes in power of 1000 (e.g., 4.8 M).
 * `-d, --dry-run` Won't reboot if the parameters are met, just prints a message.
