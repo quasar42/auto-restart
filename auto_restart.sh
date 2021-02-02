@@ -426,7 +426,7 @@ do
                     then
                         if [[ -z "$execute_F" ]];
                         then
-                            reboot
+                            shutdown -r
                         else
                             bash -c "$execute"
                         fi

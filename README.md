@@ -10,6 +10,7 @@ This script will try to reboot the computer if set parameters are met. Suitable 
 * expr
 * grep
 * sed
+* **shutdown**
 * sleep
 * **uptime**
 
