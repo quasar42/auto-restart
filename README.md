@@ -33,3 +33,10 @@ _(commands in bold are not included in [commands standardised by POSIX](https://
 * `-e, --execute <command>` Instead of rebooting, custom `<command>` will be executed.
 * `-r, --human-readable` Prints network traffic sizes in power of 1000 (e.g., 4.8 M).
 * `-d, --dry-run` Won't reboot if the parameters are met, just prints a message.
+
+## Examples
+Run Auto restart script in the background. If the network usage is lower than 2 MB/s on average the computer will be restarted. Otherwise the script will try to restart until 5:00 in the morning every 15 minutes (the network traffic measurement length is not included into the interval between tries). Network measures will be printed in human readable form.
+`./auto_restart.sh -n 2M -i 870 -t 5:00 -r`
+
+Line in crontab to restart the computer every day at 4:00 in the morning and check if the CPU load isn't too high in order to detect if the system is in use. If the CPU load is too high, the script will try to restart 6 times every 10 minutes. The output of the script is saved to log file with a dynamically changing date as a name of the log file.
+`0  4	* * *	root	/opt/Auto-restart/auto_restart.sh --cpu 2.0,2.0,2.0 --amount-of-tries 6 --interval 600 >> "/opt/Auto-restart/LOGS/$(date +\%Y-\%m-\%d).log"`
