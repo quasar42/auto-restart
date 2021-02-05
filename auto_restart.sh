@@ -398,7 +398,13 @@ do
                 
                 if [ "$averageRxTx" -lt "$network" ];
                 then
-                    echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tThe computer will be restarted now."
+                    if [[ -z "$execute_F" ]];
+                    then
+                        echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tThe computer will be restarted now."
+                    else
+                        echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tCommand \"$execute\" will now be executed."
+                    fi
+
                     echo -en "\t\t\t\tCPU load:\t\t$currentCPULoad"
                     if [[ -z "$cpuLoad_F" ]];
                     then
