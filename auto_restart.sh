@@ -77,6 +77,14 @@ function scriptTerminate() {
     exit
 }
 
+function printInfo() {
+    echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\t$@"
+}
+
+function printStart() {
+    echo -e "[START]\t$(date +'%Y-%m-%d %H:%M:%S')\t$@"
+}
+
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
@@ -309,7 +317,7 @@ then
     printHelp
 fi
 
-echo -e "[START]\t$(date +'%Y-%m-%d %H:%M:%S')\tStarting auto restart script. Set options:"
+printStart "Starting auto restart script. Set options:"
 
 if [[ ! -z "$cpuLoad_F" ]];
 then
@@ -387,7 +395,7 @@ do
             then
                 if [[ ! -z "$network_F" ]];
                 then
-                    echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tStarting network traffic monitorig for $netInterval s"
+                    printInfo "Starting network traffic monitorig for $netInterval s"
                     oldRxTx="$(cat /proc/net/dev | grep -e '.*:.*' | awk '{sum += $2 + $10} END {printf "%.f", sum}')"
                     sleep $netInterval
                     deltaRxTx="$(expr $(cat /proc/net/dev | grep -e '.*:.*' | awk '{sum += $2 + $10} END {printf "%.f", sum}') - $oldRxTx)"
@@ -400,9 +408,9 @@ do
                 then
                     if [[ -z "$execute_F" ]];
                     then
-                        echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tThe computer will be restarted now."
+                        printInfo "The computer will be restarted now."
                     else
-                        echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tCommand \"$execute\" will now be executed."
+                        printInfo "Command \"$execute\" will now be executed."
                     fi
 
                     echo -en "\t\t\t\tCPU load:\t\t$currentCPULoad"
@@ -445,21 +453,21 @@ do
                     fi
                     exit 0
                 else
-                    echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, because $(numToHumanReadable $averageRxTx)B/s (average network traffic in last $netInterval s) > $(numToHumanReadable $network)B/s (network traffic threshold)"
+                    printInfo "Won't restart, because $(numToHumanReadable $averageRxTx)B/s (average network traffic in last $netInterval s) > $(numToHumanReadable $network)B/s (network traffic threshold)"
                 fi
             else
                 if [ "$(echo $processFound | wc -w)" == "1" ];
                 then
-                    echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, becasue this process is still running: $processFound"
+                    printInfo "Won't restart, becasue this process is still running: $processFound"
                 else
-                    echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, becasue these processes are still running: $processFound"
+                    printInfo "Won't restart, becasue these processes are still running: $processFound"
                 fi
             fi
         else
-            echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, because $currentCPULoad (current CPU load) > $cpuLoad (CPU load threshold)"
+            printInfo "Won't restart, because $currentCPULoad (current CPU load) > $cpuLoad (CPU load threshold)"
         fi
     else
-        echo -e "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWon't restart, because $(cat /proc/uptime | awk '{print int($1/3600)}') (current uptime) < $uptime (threshold for uptime)"
+        printInfo "Won't restart, because $(cat /proc/uptime | awk '{print int($1/3600)}') (current uptime) < $uptime (threshold for uptime)"
     fi
 
     echo -en "[INFO]\t$(date +'%Y-%m-%d %H:%M:%S')\tWill sleep for $interval seconds"
